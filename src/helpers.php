@@ -21,10 +21,12 @@ if (! function_exists('json_to_keyvalue_fields')) {
             $items = [$items];
         }
 
-        $excludeSuffixes = $config['exclude_suffixes'] ?? ['_error'];
-        $excludePrefixes = $config['exclude_prefixes'] ?? [];
-        $flattenNested   = $config['flatten_nested'] ?? true;
-        $nestedSeparator = $config['nested_separator'] ?? ' → ';
+        $globalConfig = function_exists('config') ? config('json-to-keyvalue', []) : [];
+
+        $excludeSuffixes = $config['exclude_suffixes'] ?? $globalConfig['exclude_suffixes'] ?? ['_error'];
+        $excludePrefixes = $config['exclude_prefixes'] ?? $globalConfig['exclude_prefixes'] ?? [];
+        $flattenNested = $config['flatten_nested'] ?? $globalConfig['flatten_nested'] ?? true;
+        $nestedSeparator = $config['nested_separator'] ?? $globalConfig['nested_separator'] ?? ' → ';
 
         foreach ($items as $index => $item) {
             $keyValueData = [];
@@ -34,7 +36,9 @@ if (! function_exists('json_to_keyvalue_fields')) {
                 : $item;
 
             foreach ($flattenedItem as $key => $value) {
-                if (isset($config['skip']) && in_array($key, $config['skip'])) continue;
+                if (isset($config['skip']) && in_array($key, $config['skip'])) {
+                    continue;
+                }
 
                 $shouldExclude = false;
 
@@ -54,13 +58,21 @@ if (! function_exists('json_to_keyvalue_fields')) {
                     }
                 }
 
-                if ($shouldExclude) continue;
+                if ($shouldExclude) {
+                    continue;
+                }
 
-                $label = $config['labels'][$key] ?? str_replace('_', ' ', ucwords($key, '_'));
+                if (isset($config['labels'][$key])) {
+                    $label = $config['labels'][$key];
+                } else {
+                    $parts = explode($nestedSeparator, $key);
+                    $parts = array_map(fn ($part) => str_replace('_', ' ', ucwords($part, '_')), $parts);
+                    $label = implode($nestedSeparator, $parts);
+                }
 
                 if (isset($config['lookups'][$key])) {
                     $lookup = $config['lookups'][$key];
-                    $model  = $lookup['model']::where($lookup['field'], $value)->first();
+                    $model = $lookup['model']::where($lookup['field'], $value)->first();
                     $keyValueData[$label] = $model
                         ? $model->{$lookup['display']}
                         : ($item[$lookup['fallback'] ?? $key] ?? 'Unknown');

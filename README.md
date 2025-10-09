@@ -1,6 +1,6 @@
 # JSON to KeyValue for Laravel Nova
 
-Convert JSON data or arrays into beautiful, read-only Laravel Nova KeyValue fields with zero hassle.
+A modern, fluent API for converting JSON/arrays into beautiful, read-only Laravel Nova KeyValue fields.
 
 ## Features
 
@@ -12,6 +12,15 @@ Convert JSON data or arrays into beautiful, read-only Laravel Nova KeyValue fiel
 - 🔍 Database lookups for foreign keys
 - ✨ Custom formatters for any field
 - 🔒 Read-only, detail-only display
+- 🎨 Fluent API for clean, readable code
+- 🧰 Built-in formatters (currency, dates, phone, etc.)
+- ⚙️ Publishable config for global defaults
+- 🎭 Blade component for non-Nova use
+
+## Requirements
+
+- PHP 8.1+
+- Laravel Nova (not included - must be installed separately)
 
 ## Installation
 
@@ -21,73 +30,333 @@ composer require provydon/json-to-keyvalue
 
 ## Usage
 
+### Class-Based API (Recommended)
+
+The fluent API provides a clean, chainable interface:
+
+```php
+use Provydon\JsonToKeyvalue\JsonToKeyvalue;
+
+public function fields(Request $request)
+{
+    return JsonToKeyvalue::make($this->metadata, 'Metadata')
+        ->skip(['password'])
+        ->excludeSuffixes(['_error'])
+        ->formatters([
+            'amount' => fn($value) => '₦' . number_format($value, 2)
+        ])
+        ->toFields();
+}
+```
+
+**Why use the class?**
+- ✨ Clean, readable, chainable methods
+- 🎯 Type hints and IDE autocomplete
+- 🔧 Easier to test and maintain
+- 📦 Can use `toArray()` for non-Nova contexts
+
+### Helper Function (Legacy)
+
+The global helper function is still available but less recommended:
+
 ```php
 public function fields(Request $request)
 {
     return [
-        json_to_keyvalue_fields($this->metadata, 'Metadata'),
+        json_to_keyvalue_fields($this->metadata, 'Metadata', [
+            'skip' => ['password'],
+            'exclude_suffixes' => ['_error']
+        ])
     ];
 }
 ```
 
-The function is automatically available globally after installation.
+### Blade Component (Non-Nova)
 
-### Basic Example
+For displaying key-value pairs outside of Nova:
 
-```php
-json_to_keyvalue_fields($jsonData, 'Field Name')
+```blade
+<x-keyvalue-display 
+    :data="$jsonData" 
+    label="User Details" 
+    :config="['skip' => ['password']]" 
+/>
 ```
 
-## Configuration Options
+## API Methods
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `skip` | `[]` | Array of keys to skip completely |
-| `exclude_suffixes` | `['_error']` | Exclude keys ending with these suffixes |
-| `exclude_prefixes` | `[]` | Exclude keys starting with these prefixes |
-| `flatten_nested` | `true` | Flatten nested arrays |
-| `nested_separator` | `' → '` | Separator for nested keys |
-| `item_label` | Field name | Label for items in arrays |
-| `labels` | `[]` | Custom labels for specific keys |
-| `formatters` | `[]` | Custom formatters: `fn($value, $item) => ...` |
-| `lookups` | `[]` | Database lookups for foreign keys |
+### Available Methods
 
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `make($data, $label)` | data, label | Create new instance |
+| `skip($keys)` | array | Skip specific keys |
+| `excludeSuffixes($suffixes)` | array | Exclude keys by suffix |
+| `excludePrefixes($prefixes)` | array | Exclude keys by prefix |
+| `flattenNested($bool)` | boolean | Enable/disable flattening |
+| `nestedSeparator($sep)` | string | Set separator for nested keys |
+| `itemLabel($label)` | string | Label for array items |
+| `labels($labels)` | array | Custom field labels |
+| `formatters($formatters)` | array | Custom formatters |
+| `lookups($lookups)` | array | Database lookups |
+| `config($config)` | array | Merge config array |
+| `toFields()` | - | Return Nova fields |
+| `toArray()` | - | Return plain arrays |
 
-### With Configuration
+### Examples
 
+**Skip specific keys**
 ```php
-json_to_keyvalue_fields($data, 'User Details', [
-    'skip' => ['password', 'token'],
-    'exclude_suffixes' => ['_error', '_internal'],
-    'exclude_prefixes' => ['temp_'],
-    'flatten_nested' => true,
-    'nested_separator' => ' → ',
-    'item_label' => 'User',
-    
-    'labels' => [
-        'first_name' => 'First Name',
+JsonToKeyvalue::make($data, 'Payment Info')
+    ->skip(['cvv', 'password', 'secret_key'])
+    ->toFields();
+```
+
+**Exclude by suffix/prefix**
+```php
+JsonToKeyvalue::make($data, 'Response')
+    ->excludeSuffixes(['_error', '_debug', '_internal'])
+    ->excludePrefixes(['temp_', 'cache_'])
+    ->toFields();
+```
+
+**Custom labels**
+```php
+JsonToKeyvalue::make($data, 'User')
+    ->labels([
         'dob' => 'Date of Birth',
-    ],
-    
-    'formatters' => [
-        'created_at' => fn($value) => date('M d, Y', strtotime($value)),
-        'amount' => fn($value) => '$' . number_format($value, 2),
-    ],
-    
-    'lookups' => [
+        'phone_number' => 'Phone',
+        'created_at' => 'Member Since'
+    ])
+    ->toFields();
+```
+
+**Custom formatters**
+```php
+JsonToKeyvalue::make($data, 'Transaction')
+    ->formatters([
+        'amount' => fn($value) => '₦' . number_format($value, 2),
+        'created_at' => fn($value) => \Carbon\Carbon::parse($value)->format('M d, Y'),
+        'status' => fn($value) => strtoupper($value)
+    ])
+    ->toFields();
+```
+
+**Database lookups**
+```php
+JsonToKeyvalue::make($data, 'Order')
+    ->lookups([
         'user_id' => [
             'model' => \App\Models\User::class,
             'field' => 'id',
             'display' => 'name',
-            'fallback' => 'user_id',
+            'fallback' => 'user_id'
         ],
-    ],
-])
+        'product_id' => [
+            'model' => \App\Models\Product::class,
+            'field' => 'id',
+            'display' => 'title'
+        ]
+    ])
+    ->toFields();
 ```
 
-## Helper Function
+**Nested array handling**
+```php
+JsonToKeyvalue::make($data, 'Config')
+    ->flattenNested(true)
+    ->nestedSeparator(' > ')
+    ->toFields();
+```
 
-The package also provides `array_flatten_with_keys()` for general use:
+**Multiple items**
+```php
+$orders = [
+    ['id' => 1, 'total' => 5000],
+    ['id' => 2, 'total' => 3000]
+];
+
+JsonToKeyvalue::make($orders, 'Order')
+    ->itemLabel('Order')
+    ->toFields();
+```
+
+**Complete example**
+
+```php
+use Provydon\JsonToKeyvalue\JsonToKeyvalue;
+use Provydon\JsonToKeyvalue\Formatters;
+
+JsonToKeyvalue::make($data, 'Payment Details')
+    ->skip(['cvv', 'secret_key'])
+    ->excludeSuffixes(['_error', '_debug'])
+    ->flattenNested(true)
+    ->nestedSeparator(' → ')
+    ->labels([
+        'transaction_ref' => 'Reference',
+        'created_at' => 'Date'
+    ])
+    ->formatters([
+        'amount' => Formatters::currency('₦', 2),
+        'created_at' => Formatters::datetime('M d, Y g:i A')
+    ])
+    ->lookups([
+        'user_id' => [
+            'model' => \App\Models\User::class,
+            'field' => 'id',
+            'display' => 'email',
+            'fallback' => 'user_id'
+        ]
+    ])
+    ->toFields();
+```
+
+**Using `toArray()` for non-Nova contexts**
+
+```php
+$data = JsonToKeyvalue::make($payment, 'Payment')
+    ->skip(['internal_id'])
+    ->formatters(['amount' => Formatters::currency('$')])
+    ->toArray();
+```
+
+## Built-in Formatters
+
+The package includes ready-to-use formatters:
+
+```php
+use Provydon\JsonToKeyvalue\JsonToKeyvalue;
+use Provydon\JsonToKeyvalue\Formatters;
+
+JsonToKeyvalue::make($data, 'Transaction')
+    ->formatters([
+        'amount' => Formatters::currency('₦', 2),
+        'created_at' => Formatters::date('M d, Y'),
+        'updated_at' => Formatters::datetime('M d, Y g:i A'),
+        'is_active' => Formatters::boolean('Active', 'Inactive'),
+        'status' => Formatters::uppercase(),
+        'name' => Formatters::titleCase(),
+        'phone' => Formatters::phone('+234'),
+        'description' => Formatters::truncate(100),
+        'discount' => Formatters::percentage(2),
+        'file_size' => Formatters::fileSize(),
+        'metadata' => Formatters::json(pretty: true),
+        'type' => Formatters::enumLabel([
+            'pending' => 'Pending Payment',
+            'completed' => 'Completed'
+        ])
+    ])
+    ->toFields();
+```
+
+### Available Formatters
+
+- `currency($symbol, $decimals)` - Format numbers as currency
+- `date($format)` - Format dates
+- `datetime($format)` - Format date and time
+- `boolean($trueLabel, $falseLabel)` - Convert boolean to text
+- `uppercase()` - Convert to uppercase
+- `lowercase()` - Convert to lowercase
+- `titleCase()` - Convert to title case
+- `phone($countryCode)` - Format phone numbers
+- `truncate($length, $ending)` - Truncate long text
+- `percentage($decimals)` - Format as percentage
+- `fileSize()` - Convert bytes to human-readable size
+- `json($pretty)` - Format as JSON
+- `enumLabel($labels)` - Map enum values to labels
+
+## Global Configuration
+
+Publish the config file:
+
+```bash
+php artisan vendor:publish --tag=json-to-keyvalue-config
+```
+
+Set global defaults in `config/json-to-keyvalue.php`:
+
+```php
+return [
+    'exclude_suffixes' => ['_error', '_debug'],
+    'exclude_prefixes' => ['temp_'],
+    'flatten_nested' => true,
+    'nested_separator' => ' → ',
+    'skip' => [],
+    'labels' => [],
+    'formatters' => [],
+    'lookups' => [],
+];
+```
+
+## Blade Component
+
+Publish the views:
+
+```bash
+php artisan vendor:publish --tag=json-to-keyvalue-views
+```
+
+Use in Blade templates:
+
+```blade
+<x-keyvalue-display 
+    :data="$user->metadata" 
+    label="User Metadata" 
+    :config="[
+        'skip' => ['password'],
+        'formatters' => [
+            'created_at' => fn($v) => $v->format('M d, Y')
+        ]
+    ]" 
+/>
+```
+
+## Advanced Usage
+
+### Chaining Multiple Configurations
+
+```php
+use Provydon\JsonToKeyvalue\JsonToKeyvalue;
+use Provydon\JsonToKeyvalue\Formatters;
+
+JsonToKeyvalue::make($metadata, 'User Metadata')
+    ->skip(['password', 'token', 'api_key'])
+    ->excludeSuffixes(['_error', '_internal', '_debug'])
+    ->excludePrefixes(['temp_', 'cache_'])
+    ->flattenNested(true)
+    ->nestedSeparator(' → ')
+    ->itemLabel('Metadata')
+    ->labels([
+        'first_name' => 'First Name',
+        'last_name' => 'Last Name'
+    ])
+    ->formatters([
+        'created_at' => Formatters::datetime(),
+        'amount' => Formatters::currency('₦'),
+        'is_active' => Formatters::boolean()
+    ])
+    ->toFields();
+```
+
+### Using Config Array
+
+For complex configurations, you can pass an array:
+
+```php
+JsonToKeyvalue::make($data, 'Details')
+    ->config([
+        'skip' => ['password'],
+        'exclude_suffixes' => ['_error'],
+        'formatters' => [
+            'amount' => Formatters::currency('$')
+        ]
+    ])
+    ->toFields();
+```
+
+### Helper Functions (Advanced)
+
+The package provides `array_flatten_with_keys()` for general use:
 
 ```php
 $flat = array_flatten_with_keys([
@@ -98,6 +367,76 @@ $flat = array_flatten_with_keys([
 ], '', ' → ');
 
 // Result: ['user → name' => 'John', 'user → address → city' => 'Lagos']
+```
+
+## Testing
+
+Run the tests:
+
+```bash
+composer test
+```
+
+Or:
+
+```bash
+./vendor/bin/phpunit
+```
+
+## Code Formatting
+
+This package uses Laravel Pint for code formatting:
+
+**Format code:**
+```bash
+composer format
+```
+
+**Check formatting without fixing:**
+```bash
+composer format:test
+```
+
+Or run Pint directly:
+```bash
+./vendor/bin/pint
+```
+
+## Local Development
+
+To test this package locally in another Laravel project before publishing to Packagist:
+
+Add to your project's `composer.json`:
+
+```json
+"repositories": [
+    {
+        "type": "path",
+        "url": "../json-to-keyvalue"
+    }
+],
+"require": {
+    "provydon/json-to-keyvalue": "*"
+}
+```
+
+Then run:
+
+```bash
+composer update provydon/json-to-keyvalue
+```
+
+## Publishing to Packagist
+
+1. Push your code to GitHub
+2. Go to [packagist.org](https://packagist.org) and sign in
+3. Click "Submit" and paste your GitHub repository URL
+4. Packagist will auto-update on each GitHub push (configure webhook for automation)
+
+Users can then install via:
+
+```bash
+composer require provydon/json-to-keyvalue
 ```
 
 ## License
