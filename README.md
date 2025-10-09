@@ -22,8 +22,6 @@ composer require provydon/json-to-keyvalue
 ## Usage
 
 ```php
-use function json_to_keyvalue_fields;
-
 public function fields(Request $request)
 {
     return [
@@ -31,6 +29,8 @@ public function fields(Request $request)
     ];
 }
 ```
+
+The function is automatically available globally after installation.
 
 ### Basic Example
 
