@@ -51,9 +51,27 @@ composer require provydon/json-to-keyvalue
 
 ## Usage
 
-### Class-Based API (Recommended)
+### Quick Start
 
-The fluent API provides a clean, chainable interface:
+The simplest usage:
+
+```php
+use Provydon\JsonToKeyvalue\JsonToKeyvalue;
+
+public function fields(Request $request)
+{
+    return [
+        JsonToKeyvalue::make($this->metadata, 'Metadata')
+            ->toFields()
+    ];
+}
+```
+
+That's it! Your nested JSON is now flattened and displayed as readable key-value pairs.
+
+### Adding Options
+
+You can chain methods to customize the output:
 
 ```php
 use Provydon\JsonToKeyvalue\JsonToKeyvalue;
