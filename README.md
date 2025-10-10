@@ -6,7 +6,8 @@ A Laravel package that transforms nested JSON/arrays into flat, readable key-val
 
 ### The Problem
 
-Not everyone understands JSON, especially regular admin users in your Nova Admin Panel. Nova's built-in KeyValue field doesn't work with nested objects or JSON arrays - it just displays them as raw JSON strings with index numbers as keys.
+Not everyone understands JSON — especially regular admin users in your Nova Admin Panel. 
+Nova's built-in KeyValue field doesn't work with nested objects or JSON arrays; it simply displays them as raw JSON strings with index numbers as keys, or sometimes doesn’t display them at all.
 
 **Without this package:**
 
