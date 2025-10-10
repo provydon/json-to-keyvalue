@@ -1,6 +1,20 @@
 # JSON to KeyValue for Laravel Nova
 
-A modern, fluent API for converting JSON/arrays into beautiful, read-only Laravel Nova KeyValue fields.
+A Laravel package that transforms nested JSON/arrays into flat, readable key-value pairs for display in Nova's KeyValue field.
+
+## Why You Need This
+
+**The Problem:** Not everyone understands JSON, especially regular Admin users in your Nova Admin Panel. Nova's built-in KeyValue field doesn't work with nested objects or JSON arrays - it just displays them as raw JSON strings with the index numbers as keys.
+
+**The Solution:** This package transforms your JSON data into flat, readable key-value pairs before displaying them using Laravel Nova's existing KeyValue fields.
+
+<!-- ### Before vs After
+
+**Before:** Raw JSON blob that admin users can't understand
+![Before - Raw JSON](screenshots/before.png)
+
+**After:** Flattened, formatted data that anyone can read
+![After - KeyValue Display](screenshots/after.png) -->
 
 ## Features
 
