@@ -4,17 +4,23 @@ A Laravel package that transforms nested JSON/arrays into flat, readable key-val
 
 ## Why You Need This
 
-**The Problem:** Not everyone understands JSON, especially regular Admin users in your Nova Admin Panel. Nova's built-in KeyValue field doesn't work with nested objects or JSON arrays - it just displays them as raw JSON strings with the index numbers as keys.
+### The Problem
 
-**The Solution:** This package transforms your JSON data into flat, readable key-value pairs before displaying them using Laravel Nova's existing KeyValue fields.
+Not everyone understands JSON, especially regular admin users in your Nova Admin Panel. Nova's built-in KeyValue field doesn't work with nested objects or JSON arrays - it just displays them as raw JSON strings with index numbers as keys.
 
-<!-- ### Before vs After
+**Without this package:**
 
-**Before:** Raw JSON blob that admin users can't understand
-![Before - Raw JSON](screenshots/before.png)
+![Before - Raw JSON](https://github.com/provydon/json-to-keyvalue/blob/main/screenshots/before.jpg)
+![Before - Nova KeyValue](https://github.com/provydon/json-to-keyvalue/blob/main/screenshots/before2.jpg)
 
-**After:** Flattened, formatted data that anyone can read
-![After - KeyValue Display](screenshots/after.png) -->
+### The Solution
+
+This package transforms your JSON data into flat, readable key-value pairs before displaying them using Laravel Nova's existing KeyValue fields.
+
+**With this package:**
+
+![After - KeyValue Display](https://github.com/provydon/json-to-keyvalue/blob/main/screenshots/after.jpg)
+
 
 ## Features
 
