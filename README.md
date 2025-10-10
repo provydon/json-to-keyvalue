@@ -26,11 +26,11 @@ This package transforms your JSON data into flat, readable key-value pairs befor
 ## Features
 
 - 🔄 Handles JSON strings or arrays
+- 🔍 Intelligently handles database relationships, resolving foreign keys by fetching and displaying the related record’s name or any column you specify.
 - 🎯 Automatically flattens nested objects
 - 🎨 Pretty key formatting (snake_case → Title Case)
 - 🚫 Smart filtering (exclude by prefix/suffix)
 - 📊 Multiple items displayed as separate fields
-- 🔍 Database lookups for foreign keys
 - ✨ Custom formatters for any field
 - 🔒 Read-only, detail-only display
 - 🎨 Fluent API for clean, readable code
