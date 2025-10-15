@@ -26,7 +26,7 @@ This package transforms your JSON data into flat, readable key-value pairs befor
 ## Features
 
 - 🔄 Handles JSON strings or arrays
-- 🔍 Intelligently handles database relationships, resolving foreign keys by fetching and displaying the related record’s name or any column you specify.
+- 🔍 Intelligently handles database relationships, resolving foreign keys by fetching and displaying the related record's name or any column you specify.
 - 🎯 Automatically flattens nested objects
 - 🎨 Pretty key formatting (snake_case → Title Case)
 - 🚫 Smart filtering (exclude by prefix/suffix)
@@ -37,6 +37,57 @@ This package transforms your JSON data into flat, readable key-value pairs befor
 - 🧰 Built-in formatters (currency, dates, phone, etc.)
 - ⚙️ Publishable config for global defaults
 - 🎭 Blade component for non-Nova use
+- 🎁 Auto-flatten single-item arrays (no more "#1" suffixes!)
+- 🔢 Customizable or skippable array indices
+- 📦 Conditional flattening based on array size
+- 🗂️ Simplified nested array iteration
+
+## What's New in v1.1.0
+
+### Auto-Flatten Single-Item Arrays
+No more seeing "Item #1" when you only have one item! Use `flattenSingleArrays()` to automatically extract single items:
+
+```php
+JsonToKeyvalue::make($data, 'User')
+    ->flattenSingleArrays(true)
+    ->toFields();
+```
+
+### Simplified Nested Array Iteration
+Transform complex nested structures with one simple method:
+
+```php
+// Before
+collect($this->data)->flatMap(function ($value, $key) {
+    $label = ucwords(str_replace('_', ' ', $key));
+    $data = is_array($value) && isset($value[0]) ? $value[0] : $value;
+    return JsonToKeyvalue::make($data, $label)->flattenNested(true)->toFields();
+})->toArray()
+
+// After
+JsonToKeyvalue::fromNestedArray($this->data)
+```
+
+### Customizable Array Indices
+Skip indices entirely or customize their format:
+
+```php
+// Skip completely
+->skipArrayIndices(true)
+
+// Use parentheses
+->arrayIndexFormat(' (%d)')
+
+// Use brackets
+->arrayIndexFormat(' [%d]')
+```
+
+### More Control
+Conditionally flatten arrays and control when to process large datasets:
+
+```php
+->maxArraySize(10)  // Only process arrays with ≤10 items
+```
 
 ## Requirements
 
@@ -129,11 +180,16 @@ For displaying key-value pairs outside of Nova:
 | Method | Parameters | Description |
 |--------|------------|-------------|
 | `make($data, $label)` | data, label | Create new instance |
+| `fromNestedArray($data, $formatter)` | array, ?callable | Static method to iterate nested arrays |
 | `skip($keys)` | array | Skip specific keys |
 | `excludeSuffixes($suffixes)` | array | Exclude keys by suffix |
 | `excludePrefixes($prefixes)` | array | Exclude keys by prefix |
 | `flattenNested($bool)` | boolean | Enable/disable flattening |
 | `nestedSeparator($sep)` | string | Set separator for nested keys |
+| `flattenSingleArrays($bool)` | boolean | Auto-extract single-item arrays |
+| `skipArrayIndices($bool)` | boolean | Skip adding array indices to labels |
+| `arrayIndexFormat($format)` | string | Customize array index format (sprintf) |
+| `maxArraySize($size)` | ?int | Only flatten arrays below this size |
 | `itemLabel($label)` | string | Label for array items |
 | `labels($labels)` | array | Custom field labels |
 | `formatters($formatters)` | array | Custom formatters |
@@ -218,6 +274,69 @@ $orders = [
 JsonToKeyvalue::make($orders, 'Order')
     ->itemLabel('Order')
     ->toFields();
+```
+
+**Auto-flatten single-item arrays**
+```php
+// If your data has single-item arrays like [['name' => 'John']]
+// This will extract the item without showing "Item #1"
+JsonToKeyvalue::make($data, 'User')
+    ->flattenSingleArrays(true)
+    ->toFields();
+```
+
+**Skip array indices**
+```php
+// Removes "#1", "#2" suffixes from labels
+JsonToKeyvalue::make($items, 'Items')
+    ->skipArrayIndices(true)
+    ->toFields();
+```
+
+**Custom array index format**
+```php
+// Customize how array indices are displayed
+JsonToKeyvalue::make($items, 'Item')
+    ->arrayIndexFormat(' (%d)')  // Item (1), Item (2)
+    ->toFields();
+
+// Or use brackets
+JsonToKeyvalue::make($items, 'Item')
+    ->arrayIndexFormat(' [%d]')  // Item [1], Item [2]
+    ->toFields();
+```
+
+**Conditional flattening by size**
+```php
+// Only process arrays with 10 or fewer items
+JsonToKeyvalue::make($data, 'Large Dataset')
+    ->maxArraySize(10)
+    ->toFields();
+```
+
+**Nested array iteration**
+```php
+// The old way
+Panel::make('Details', $this->data
+    ? collect($this->data)->flatMap(function ($value, $key) {
+        $label = ucwords(str_replace('_', ' ', $key));
+        $data = is_array($value) && isset($value[0]) ? $value[0] : $value;
+        return JsonToKeyvalue::make($data, $label)->flattenNested(true)->toFields();
+    })->toArray()
+    : []
+),
+
+// The new way ✨
+Panel::make('Details', 
+    $this->data ? JsonToKeyvalue::fromNestedArray($this->data) : []
+),
+
+// With custom label formatter
+Panel::make('Details',
+    $this->data 
+        ? JsonToKeyvalue::fromNestedArray($this->data, fn($key) => strtoupper($key))
+        : []
+),
 ```
 
 **Complete example**
@@ -320,6 +439,10 @@ return [
     'exclude_prefixes' => ['temp_'],
     'flatten_nested' => true,
     'nested_separator' => ' → ',
+    'flatten_single_arrays' => false,
+    'skip_array_indices' => false,
+    'array_index_format' => ' #%d',
+    'max_array_size' => null,
     'skip' => [],
     'labels' => [],
     'formatters' => [],
