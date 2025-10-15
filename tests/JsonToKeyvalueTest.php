@@ -104,4 +104,137 @@ class JsonToKeyvalueTest extends TestCase
         $this->assertEquals('John', $result[0]['Name']);
         $this->assertEquals('Jane', $result[1]['Name']);
     }
+
+    public function test_flatten_single_arrays()
+    {
+        $data = [
+            ['id' => 1, 'name' => 'John'],
+        ];
+
+        $result = JsonToKeyvalue::make($data, 'User')
+            ->flattenSingleArrays(true)
+            ->toArray();
+
+        $this->assertCount(1, $result);
+        $this->assertEquals('John', $result[0]['Name']);
+    }
+
+    public function test_flatten_single_arrays_preserves_multiple()
+    {
+        $data = [
+            ['id' => 1, 'name' => 'John'],
+            ['id' => 2, 'name' => 'Jane'],
+        ];
+
+        $result = JsonToKeyvalue::make($data, 'User')
+            ->flattenSingleArrays(true)
+            ->toArray();
+
+        $this->assertCount(2, $result);
+    }
+
+    public function test_skip_array_indices()
+    {
+        $data = [
+            ['id' => 1, 'name' => 'John'],
+            ['id' => 2, 'name' => 'Jane'],
+        ];
+
+        $result = JsonToKeyvalue::make($data, 'User')
+            ->skipArrayIndices(true)
+            ->toArray();
+
+        $this->assertCount(2, $result);
+    }
+
+    public function test_custom_array_index_format()
+    {
+        $data = [
+            ['id' => 1, 'name' => 'John'],
+            ['id' => 2, 'name' => 'Jane'],
+        ];
+
+        $result = JsonToKeyvalue::make($data, 'User')
+            ->arrayIndexFormat(' (%d)')
+            ->toArray();
+
+        $this->assertCount(2, $result);
+    }
+
+    public function test_max_array_size()
+    {
+        $data = [
+            ['id' => 1, 'name' => 'John'],
+            ['id' => 2, 'name' => 'Jane'],
+            ['id' => 3, 'name' => 'Bob'],
+        ];
+
+        $result = JsonToKeyvalue::make($data, 'User')
+            ->maxArraySize(2)
+            ->toArray();
+
+        $this->assertEmpty($result);
+    }
+
+    public function test_max_array_size_allows_smaller()
+    {
+        $data = [
+            ['id' => 1, 'name' => 'John'],
+        ];
+
+        $result = JsonToKeyvalue::make($data, 'User')
+            ->maxArraySize(5)
+            ->toArray();
+
+        $this->assertCount(1, $result);
+    }
+
+    public function test_from_nested_array()
+    {
+        if (! class_exists(\Laravel\Nova\Fields\KeyValue::class)) {
+            $this->markTestSkipped('Laravel Nova not installed');
+        }
+
+        $data = [
+            'personal_info' => ['name' => 'John', 'age' => 30],
+            'address' => ['city' => 'New York', 'zip' => '10001'],
+        ];
+
+        $fields = JsonToKeyvalue::fromNestedArray($data);
+
+        $this->assertCount(2, $fields);
+    }
+
+    public function test_from_nested_array_with_custom_formatter()
+    {
+        if (! class_exists(\Laravel\Nova\Fields\KeyValue::class)) {
+            $this->markTestSkipped('Laravel Nova not installed');
+        }
+
+        $data = [
+            'personal_info' => ['name' => 'John', 'age' => 30],
+        ];
+
+        $fields = JsonToKeyvalue::fromNestedArray($data, function ($key) {
+            return strtoupper($key);
+        });
+
+        $this->assertCount(1, $fields);
+    }
+
+    public function test_from_nested_array_with_single_item_arrays()
+    {
+        if (! class_exists(\Laravel\Nova\Fields\KeyValue::class)) {
+            $this->markTestSkipped('Laravel Nova not installed');
+        }
+
+        $data = [
+            'personal_info' => [['name' => 'John', 'age' => 30]],
+            'address' => [['city' => 'New York', 'zip' => '10001']],
+        ];
+
+        $fields = JsonToKeyvalue::fromNestedArray($data);
+
+        $this->assertCount(2, $fields);
+    }
 }

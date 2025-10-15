@@ -19,6 +19,25 @@ class JsonToKeyvalue
         return $instance;
     }
 
+    public static function fromNestedArray(array $data, ?callable $labelFormatter = null): array
+    {
+        $fields = [];
+
+        foreach ($data as $key => $value) {
+            $label = $labelFormatter
+                ? $labelFormatter($key)
+                : ucwords(str_replace('_', ' ', $key));
+
+            $instance = self::make($value, $label)
+                ->flattenSingleArrays(true)
+                ->flattenNested(true);
+
+            $fields = array_merge($fields, $instance->toFields());
+        }
+
+        return $fields;
+    }
+
     public function skip(array $keys): self
     {
         $this->config['skip'] = $keys;
@@ -82,6 +101,34 @@ class JsonToKeyvalue
         return $this;
     }
 
+    public function flattenSingleArrays(bool $flatten = true): self
+    {
+        $this->config['flatten_single_arrays'] = $flatten;
+
+        return $this;
+    }
+
+    public function skipArrayIndices(bool $skip = true): self
+    {
+        $this->config['skip_array_indices'] = $skip;
+
+        return $this;
+    }
+
+    public function arrayIndexFormat(string $format): self
+    {
+        $this->config['array_index_format'] = $format;
+
+        return $this;
+    }
+
+    public function maxArraySize(?int $size): self
+    {
+        $this->config['max_array_size'] = $size;
+
+        return $this;
+    }
+
     public function config(array $config): self
     {
         $this->config = array_merge($this->config, $config);
@@ -99,6 +146,17 @@ class JsonToKeyvalue
         $items = is_string($this->data) ? json_decode($this->data, true) : $this->data;
 
         if (! is_array($items) || empty($items)) {
+            return [];
+        }
+
+        $flattenSingleArrays = $this->config['flatten_single_arrays'] ?? false;
+        $maxArraySize = $this->config['max_array_size'] ?? null;
+
+        if ($flattenSingleArrays && isset($items[0]) && count($items) === 1) {
+            $items = $items[0];
+        }
+
+        if ($maxArraySize !== null && isset($items[0]) && count($items) > $maxArraySize) {
             return [];
         }
 

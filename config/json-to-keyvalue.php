@@ -9,6 +9,14 @@ return [
 
     'nested_separator' => ' → ',
 
+    'flatten_single_arrays' => false,
+
+    'skip_array_indices' => false,
+
+    'array_index_format' => ' #%d',
+
+    'max_array_size' => null,
+
     'skip' => [],
 
     'labels' => [],

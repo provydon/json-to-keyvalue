@@ -16,17 +16,33 @@ if (! function_exists('json_to_keyvalue_fields')) {
                 ->readonly()];
         }
 
+        $globalConfig = function_exists('config') ? config('json-to-keyvalue', []) : [];
+
+        $flattenSingleArrays = $config['flatten_single_arrays'] ?? $globalConfig['flatten_single_arrays'] ?? false;
+        $maxArraySize = $config['max_array_size'] ?? $globalConfig['max_array_size'] ?? null;
+
+        if ($flattenSingleArrays && isset($items[0]) && count($items) === 1) {
+            $items = $items[0];
+        }
+
+        if ($maxArraySize !== null && isset($items[0]) && count($items) > $maxArraySize) {
+            return [Text::make($fieldName)
+                ->resolveUsing(fn () => 'Array too large to display ('.count($items).' items)')
+                ->onlyOnDetail()
+                ->readonly()];
+        }
+
         $isSingleObject = ! isset($items[0]) && array_keys($items) !== range(0, count($items) - 1);
         if ($isSingleObject) {
             $items = [$items];
         }
 
-        $globalConfig = function_exists('config') ? config('json-to-keyvalue', []) : [];
-
         $excludeSuffixes = $config['exclude_suffixes'] ?? $globalConfig['exclude_suffixes'] ?? ['_error'];
         $excludePrefixes = $config['exclude_prefixes'] ?? $globalConfig['exclude_prefixes'] ?? [];
         $flattenNested = $config['flatten_nested'] ?? $globalConfig['flatten_nested'] ?? true;
         $nestedSeparator = $config['nested_separator'] ?? $globalConfig['nested_separator'] ?? ' → ';
+        $skipArrayIndices = $config['skip_array_indices'] ?? $globalConfig['skip_array_indices'] ?? false;
+        $arrayIndexFormat = $config['array_index_format'] ?? $globalConfig['array_index_format'] ?? ' #%d';
 
         foreach ($items as $index => $item) {
             $keyValueData = [];
@@ -86,7 +102,12 @@ if (! function_exists('json_to_keyvalue_fields')) {
             }
 
             $itemLabel = $config['item_label'] ?? $fieldName;
-            $label = $isSingleObject ? $itemLabel : "{$itemLabel} #".($index + 1);
+
+            if ($skipArrayIndices || $isSingleObject) {
+                $label = $itemLabel;
+            } else {
+                $label = $itemLabel.sprintf($arrayIndexFormat, $index + 1);
+            }
 
             $fields[] = KeyValue::make($label)
                 ->resolveUsing(fn () => $keyValueData)
