@@ -2,6 +2,8 @@
 
 A Laravel package that transforms nested JSON/arrays into flat, readable key-value pairs for display in Nova's KeyValue field.
 
+[![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-☕-yellow.svg)](https://buymeacoffee.com/provydon)
+
 ## Why You Need This
 
 ### The Problem
